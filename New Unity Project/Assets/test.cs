@@ -4,18 +4,30 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using System.IO;
+
 public class test : MonoBehaviour
 {
     public Button path;
     public Button rename;
     public Button rename1;
+    public Button rename2;
     string chosePath;
     // Start is called before the first frame update
+
+    public class skcData
+    {
+        public int skuindex = 6;
+        public int skcindex = 2;
+        public Dictionary<string, string> sku2skcDic = new Dictionary<string, string>();
+        public Dictionary<string, int> skcCountDic = new Dictionary<string, int>();
+    }
+
     void Start()
     {
         path.onClick.AddListener(PathClick);
         rename.onClick.AddListener(renameClick);
         rename1.onClick.AddListener(renameClick1);
+        rename2.onClick.AddListener(renameClick2);
         chosePath = getCacheString();
     }
 
@@ -32,14 +44,68 @@ public class test : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    void renameClick1()
+    void createDir(string str)
     {
         string[] dirs = Directory.GetDirectories(chosePath);
-        string newPath = Path.Combine(chosePath, "koutu");
+        string newPath = Path.Combine(chosePath, str);
         if (!Directory.Exists(newPath))
         {
             Directory.CreateDirectory(newPath);
         }
+    }
+
+    void renameClick2()
+    {
+        createDir("dingzhitupian");
+        skcData data = fillSkcData();
+        string savePath = Path.Combine(chosePath, "dingzhitupian");
+        string koutupath = Path.Combine(chosePath, "koutu");
+        string[] files = Directory.GetFiles(koutupath);
+        for (int j = 0; j < files.Length; j++)
+        {
+            {
+                string sku = Path.GetFileNameWithoutExtension(files[j]);
+                string skc = data.sku2skcDic[sku];
+                fenlei(skc, data, savePath, files[j], Path.GetFileName(files[j]));
+            }
+            //
+        }
+
+
+
+        string[] dirs = Directory.GetDirectories(chosePath);
+        for(int i = 0; i < dirs.Length; i++)
+        {
+            string dir = dirs[i];
+            if(dir.IndexOf("piliangkoutu") >= 0)
+            {
+                string piliangpath = dir;
+                string[] files1 = Directory.GetFiles(piliangpath);
+                for (int j = 0; j < files1.Length; j++)
+                {
+                    {
+                        string filename = Path.GetFileNameWithoutExtension(files1[j]);
+                        string[] arr = filename.Split('_');
+                        if(arr.Length <= 1)
+                        {
+                            continue;
+                        }
+                        string sku = arr[0];
+                        string skc = data.sku2skcDic[sku];
+                        fenlei(skc, data, savePath, files1[j], Path.GetFileName(files1[j]));
+                    }
+                    //
+                }
+                break;
+            }
+        }
+    }
+
+    void renameClick1()
+    {
+        createDir("koutu");
+        string[] dirs = Directory.GetDirectories(chosePath);
+        string newPath = Path.Combine(chosePath, "koutu");
         for (int i = 0; i < dirs.Length; i++)
         {
             string dir = dirs[i];
@@ -62,15 +128,16 @@ public class test : MonoBehaviour
         }
     }
 
-    void renameClick()
+    skcData fillSkcData()
     {
+        skcData data = new skcData();
         string[] dirs = Directory.GetDirectories(chosePath);
 
         string[] csvs = Directory.GetFiles(chosePath, "*.csv");
-        if(csvs.Length != 1)
+        if (csvs.Length != 1)
         {
             UnityEngine.Debug.LogError("csv number is not valid:" + csvs.Length);
-            return;
+            return null;
         }
 
         string[] lines = File.ReadAllLines(csvs[0]);
@@ -84,34 +151,53 @@ public class test : MonoBehaviour
 
         for (int i = 0; i < titles.Length; i++)
         {
-            if(titles[i] == "定制SKU")
+            if (titles[i] == "定制SKU")
             {
                 skuindex = i;
             }
-            if(titles[i] == "商品SKC ID")
+            if (titles[i] == "商品SKC ID")
             {
                 skcindex = i;
             }
         }
 
-        for(int i = 1; i < lines.Length; i++)
+        for (int i = 1; i < lines.Length; i++)
         {
             string[] contents = lines[i].Split(',');
             string sku = contents[skuindex];
             string skc = contents[skcindex];
             sku2skcDic[sku] = skc;
-            if(!skcCountDic.ContainsKey(skc))
+            if (!skcCountDic.ContainsKey(skc))
             {
                 skcCountDic[skc] = 0;
             }
             skcCountDic[skc]++;
         }
 
-        string newPath = Path.Combine(chosePath, "koutu");
-        if(!Directory.Exists(newPath))
+        data.skcindex = skcindex;
+        data.skuindex = skuindex;
+        data.skcCountDic = skcCountDic;
+        data.sku2skcDic = sku2skcDic;
+        return data;
+    }
+
+    void fenlei(string skc, skcData data, string savepath, string fileNameFullPath, string fileWithExt)
+    {
+        string resultPath = Path.Combine(savepath, skc + "-" + data.skcCountDic[skc]);
+        if (!Directory.Exists(resultPath))
         {
-            Directory.CreateDirectory(newPath);
+            Directory.CreateDirectory(resultPath);
         }
+
+        File.Copy(fileNameFullPath, Path.Combine(resultPath, fileWithExt), true);
+    }
+
+    void renameClick()
+    {
+        skcData data = fillSkcData();
+        string[] dirs = Directory.GetDirectories(chosePath);
+        createDir("koutu");
+        string newPath = Path.Combine(chosePath, "koutu");
         for(int i = 0; i < dirs.Length; i++)
         {
             string dir = dirs[i];
@@ -128,15 +214,9 @@ public class test : MonoBehaviour
                     string[] arr = str1.Split('-');
                     string ext = arr[1] + Path.GetExtension(files[j]);
 
-                    string skc = sku2skcDic[arr[1]];
+                    string skc = data.sku2skcDic[arr[1]];
 
-                    string resultPath = Path.Combine(newPath, skc + "-" + skcCountDic[skc]);
-                    if (!Directory.Exists(resultPath))
-                    {
-                        Directory.CreateDirectory(resultPath);
-                    }
-
-                    File.Copy(files[j], Path.Combine(resultPath, ext), true);
+                    fenlei(skc, data, newPath, files[j], ext);
                 }
                 //
             }
