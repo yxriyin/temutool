@@ -65,6 +65,10 @@ public class test : MonoBehaviour
         {
             {
                 string sku = Path.GetFileNameWithoutExtension(files[j]);
+                if(!data.sku2skcDic.ContainsKey(sku))
+                {
+                    continue;
+                }
                 string skc = data.sku2skcDic[sku];
                 fenlei(skc, data, savePath, files[j], Path.GetFileName(files[j]));
             }
@@ -121,7 +125,7 @@ public class test : MonoBehaviour
                     string str1 = str.Substring(index);
                     string[] arr = str1.Split('-');
                     string ext = arr[1] + Path.GetExtension(files[j]);
-                    File.Copy(files[j], Path.Combine(newPath, ext));
+                    File.Copy(files[j], Path.Combine(newPath, ext), true);
                 }
                 //
             }
