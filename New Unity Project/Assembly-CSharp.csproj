@@ -61,6 +61,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\imageutil.cs" />
+    <Compile Include="Assets\item.cs" />
     <Compile Include="Assets\test.cs" />
     <None Include="Assets\NewUnlitShader.shader" />
     <Reference Include="Unity.TextMeshPro.Editor">
