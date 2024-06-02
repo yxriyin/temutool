@@ -246,7 +246,7 @@ public class test : MonoBehaviour
         jianhuodanData data = new jianhuodanData();
         string[] dirs = Directory.GetDirectories(skcTxtPath);
 
-        string[] csvs = Directory.GetFiles(chosePath, "*.txt");
+        string[] csvs = Directory.GetFiles(skcTxtPath, "*.txt");
         if (csvs.Length < 1)
         {
             UnityEngine.Debug.LogError("txt number is not valid:" + csvs.Length);
