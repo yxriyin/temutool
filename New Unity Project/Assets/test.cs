@@ -13,10 +13,15 @@ public class test : MonoBehaviour
     public Button rename2;
     public Button rename3;
     public Button rename4;
+
+    public Button xuanzejianhuodanBtn;
+    public Button tongjihuizongBtn;
+
     public Text title;
     string chosePath;
     public Transform Panel;
     string skcTxtPath;
+    string jianhuodanPath;
     // Start is called before the first frame update
     public Camera saveRTCamera;
     public class skcData
@@ -42,8 +47,14 @@ public class test : MonoBehaviour
         rename2.onClick.AddListener(renameClick2);
         rename3.onClick.AddListener(renameClick3);
         rename4.onClick.AddListener(renameClick4);
+
+        xuanzejianhuodanBtn.onClick.AddListener(xuanzejianhuodan);
+        tongjihuizongBtn.onClick.AddListener(tongjijianhuodan);
+
+
         chosePath = getCacheString();
         skcTxtPath = getCacheTxtPath();
+        jianhuodanPath = getCacheJianhuodanPath();
         Panel.gameObject.SetActive(false);
         saveRTCamera.enabled = false;
     }
@@ -56,6 +67,20 @@ public class test : MonoBehaviour
     string getCacheTxtPath()
     {
         return PlayerPrefs.GetString("txtpath");
+    }
+
+
+    string getCacheJianhuodanPath()
+    {
+        return PlayerPrefs.GetString("jianhuodanpath");
+    }
+
+    void xuanzejianhuodan()
+    {
+        jianhuodanPath = EditorUtility.OpenFilePanel("Chose Path", jianhuodanPath, "");
+        UnityEngine.Debug.Log(jianhuodanPath);
+        PlayerPrefs.SetString("jianhuodanpath", jianhuodanPath);
+        PlayerPrefs.Save();
     }
 
     void PathClick()
@@ -163,6 +188,58 @@ public class test : MonoBehaviour
         PlayerPrefs.Save();
 
     }
+
+    void tongjijianhuodan()
+    {
+        string[] arr = File.ReadAllLines(jianhuodanPath);
+        int beihuoindex = 0;
+        int numindex = 3;
+        string[] titles = arr[0].Split(',');
+        for(int i = 0; i < titles.Length; i++)
+        {
+            if(titles[i] == "备货单号")
+            {
+                beihuoindex = i;
+            }
+
+            if(titles[i] == "数量")
+            {
+                numindex = i;
+            }
+        }
+
+        Dictionary<string, int> huizongDic = new Dictionary<string, int>();
+
+        for(int i = 1; i < arr.Length; i++)
+        {
+            string[] infos = arr[i].Split(',');
+            string beihuodan = infos[beihuoindex];
+            int num = int.Parse(infos[numindex]);
+            if(!huizongDic.ContainsKey(beihuodan))
+            {
+                huizongDic[beihuodan] = 0;
+            }
+
+            huizongDic[beihuodan] += num;
+        }
+
+        string dir = Path.GetDirectoryName(jianhuodanPath);
+        List<string> saveArr = new List<string>();
+        string title = "备货单号,件数";
+        saveArr.Add(title);
+
+        foreach(var key in huizongDic.Keys)
+        {
+            string result = key + "," + huizongDic[key];
+            saveArr.Add(result);
+        }
+
+        File.WriteAllLines(Path.Combine(dir, "拣货单汇总.csv"), saveArr.ToArray());
+
+    }
+
+
+
     void renameClick2()
     {
         createDir("dingzhitupian");
@@ -204,6 +281,12 @@ public class test : MonoBehaviour
                             continue;
                         }
                         string sku = arr[0];
+                        if (!data.sku2skcDic.ContainsKey(sku))
+                        {
+                            UnityEngine.Debug.LogError("sku do not exists:" + sku);
+                            continue;
+                        }
+                        
                         string skc = data.sku2skcDic[sku];
                         fenlei(skc, data, savePath, files1[j], Path.GetFileName(files1[j]));
                     }
@@ -392,5 +475,6 @@ public class test : MonoBehaviour
             Debug.Log(path);
         }
     }
+
 
 }
