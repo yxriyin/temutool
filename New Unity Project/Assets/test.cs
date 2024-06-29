@@ -17,6 +17,10 @@ public class test : MonoBehaviour
     public Button xuanzejianhuodanBtn;
     public Button tongjihuizongBtn;
 
+    public Button quchuqianzhuiBtn;
+
+    public Button fuzhitupianBtn;
+
     public Text title;
     string chosePath;
     public Transform Panel;
@@ -30,6 +34,7 @@ public class test : MonoBehaviour
         public int skcindex = 2;
         public Dictionary<string, string> sku2skcDic = new Dictionary<string, string>();
         public Dictionary<string, int> skcCountDic = new Dictionary<string, int>();
+        public Dictionary<string, string> skc2dealDic = new Dictionary<string, string>();
     }
 
     public class jianhuodanData
@@ -51,6 +56,9 @@ public class test : MonoBehaviour
         xuanzejianhuodanBtn.onClick.AddListener(xuanzejianhuodan);
         tongjihuizongBtn.onClick.AddListener(tongjijianhuodan);
 
+        quchuqianzhuiBtn.onClick.AddListener(quchuqianzui);
+
+        fuzhitupianBtn.onClick.AddListener(fuzhitupian);
 
         chosePath = getCacheString();
         skcTxtPath = getCacheTxtPath();
@@ -180,6 +188,55 @@ public class test : MonoBehaviour
         return "";
     }
 
+    void fuzhitupian()
+    {
+        string[] lines = File.ReadAllLines(jianhuodanPath);
+        int skuIndex = 1;
+        int numIndex = 3;
+
+
+        string[] titles = lines[0].Split(',');
+        for (int i = 0; i < titles.Length; i++)
+        {
+            if (titles[i] == "定制SKU")
+            {
+                skuIndex = i;
+            }
+            if (titles[i] == "数量")
+            {
+                numIndex = i;
+            }
+        }
+
+        string dir = Path.GetDirectoryName(jianhuodanPath);
+        string[] files = Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories);
+
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string[] arr = lines[i].Split(',');
+            if(int.Parse(arr[numIndex]) > 1)
+            {
+                int copyNum = int.Parse(arr[numIndex]) - 1;
+                string sku = arr[skuIndex];
+                for(int j = 0; j < files.Length; j++)
+                {
+                    if(files[j].IndexOf(sku) >= 0)
+                    {
+                        string newDir = Path.GetDirectoryName(files[j]);
+                        string newPath = Path.GetFileNameWithoutExtension(files[j]);
+                        string ext = Path.GetExtension(files[j]);
+                        for(int k = 0; k < copyNum; k++)
+                        {
+                            File.Copy(files[j], Path.Combine(newDir, newPath + "_" + k + ext));
+                        }
+                       
+                    }
+                }
+            }
+        }
+    }
+
     void renameClick3()
     {
         skcTxtPath = EditorUtility.OpenFolderPanel("Chose Path", skcTxtPath, "");
@@ -238,6 +295,32 @@ public class test : MonoBehaviour
 
     }
 
+    void quchuqianzui()
+    {
+        string[] files = Directory.GetFiles(chosePath);
+        for(int i = 0; i < files.Length; i++)
+        {
+            string fileName = Path.GetFileName(files[i]);
+            string[] arr = fileName.Split('_');
+            int skuIndex = -1;
+            int maxLen = -1;
+            for (int j = 0; j < arr.Length; j++)
+            {
+                if(arr[j].Length > maxLen)
+                {
+                    maxLen = arr[j].Length;
+                    skuIndex = j;
+                }
+            }
+            string newFileName = arr[skuIndex];
+            if(arr.Length > skuIndex + 1)
+            {
+                newFileName += "_" + arr[skuIndex + 1];
+            }
+            string dir = Path.GetDirectoryName(files[i]);
+            File.Move(files[i], Path.Combine(dir, newFileName));
+        }
+    }
 
 
     void renameClick2()
@@ -317,7 +400,20 @@ public class test : MonoBehaviour
                     string str1 = str.Substring(index);
                     string[] arr = str1.Split('-');
                     string ext = arr[1] + Path.GetExtension(files[j]);
-                    File.Copy(files[j], Path.Combine(newPath, ext), true);
+                    if(ext.ToLower().IndexOf("png") >= 0)
+                    {
+                        File.Copy(files[j], Path.Combine(newPath, ext), true);
+                    }
+                    else
+                    {
+                        byte[] srcBytes = File.ReadAllBytes(files[j]);
+                        Texture2D temp = new Texture2D(0, 0);
+                        temp.LoadImage(srcBytes);
+                        byte[] dstBytes = temp.EncodeToPNG();
+                        string newFileName = arr[1];
+                        newFileName += ".png";
+                        File.WriteAllBytes(Path.Combine(newPath, newFileName), dstBytes);
+                    }
                 }
                 //
             }
@@ -368,13 +464,45 @@ public class test : MonoBehaviour
         string[] dirs = Directory.GetDirectories(chosePath);
 
         string[] csvs = Directory.GetFiles(chosePath, "*.csv");
-        if (csvs.Length != 1)
+
+        bool hasSkcDealCSV = false;
+        int useIndex = 0;
+        int checkNum = 1;
+
+        Dictionary<string, string> skc2DealDic = new Dictionary<string, string>();
+        for (int i = 0; i < csvs.Length; i++)
+        {
+            if(csvs[i].IndexOf("SKC_图片处理方式") >= 0)
+            {
+                hasSkcDealCSV = true;
+                checkNum = 2;
+                if(i == 0)
+                {
+                    useIndex = 1;
+                }
+
+                string[] skcdealArr = File.ReadAllLines(csvs[i]);
+                int skcIndex = 1;
+                int dealIndex = 2;
+                for(int j = 1; j < skcdealArr.Length; j++)
+                {
+                    string[] arr1 = skcdealArr[j].Split(',');
+                    skc2DealDic[arr1[skcIndex]] = arr1[dealIndex];
+                }
+
+                break;
+            }
+        }
+
+        
+
+        if (csvs.Length != checkNum)
         {
             UnityEngine.Debug.LogError("csv number is not valid:" + csvs.Length);
             return null;
         }
 
-        string[] lines = File.ReadAllLines(csvs[0]);
+        string[] lines = File.ReadAllLines(csvs[useIndex]);
 
         string[] titles = lines[0].Split(',');
         int skuindex = 6;
@@ -382,7 +510,7 @@ public class test : MonoBehaviour
 
         Dictionary<string, string> sku2skcDic = new Dictionary<string, string>();
         Dictionary<string, int> skcCountDic = new Dictionary<string, int>();
-
+        
         for (int i = 0; i < titles.Length; i++)
         {
             if (titles[i] == "定制SKU")
@@ -412,12 +540,18 @@ public class test : MonoBehaviour
         data.skuindex = skuindex;
         data.skcCountDic = skcCountDic;
         data.sku2skcDic = sku2skcDic;
+        data.skc2dealDic = skc2DealDic;
         return data;
     }
 
     void fenlei(string skc, skcData data, string savepath, string fileNameFullPath, string fileWithExt)
     {
-        string resultPath = Path.Combine(savepath, skc + "-" + data.skcCountDic[skc]);
+        string newPath = skc + "_" + data.skcCountDic[skc];
+        if (data.skc2dealDic.ContainsKey(skc))
+        {
+            newPath += "_" + data.skc2dealDic[skc];
+        }
+        string resultPath = Path.Combine(savepath, newPath);
         if (!Directory.Exists(resultPath))
         {
             Directory.CreateDirectory(resultPath);

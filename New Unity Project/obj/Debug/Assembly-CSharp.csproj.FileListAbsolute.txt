@@ -474,3 +474,4 @@ E:\temutool\New Unity Project\obj\Debug\Assembly-CSharp.csproj.CoreCompileInputs
 E:\temutool\New Unity Project\obj\Debug\Assembly-CSharp.csproj.CopyComplete
 E:\temutool\New Unity Project\obj\Debug\Assembly-CSharp.dll
 E:\temutool\New Unity Project\obj\Debug\Assembly-CSharp.pdb
+E:\temutool\New Unity Project\Temp\bin\Debug\UnityEngine.VideoModule.xml
