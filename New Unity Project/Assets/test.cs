@@ -4,9 +4,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using System.IO;
+using System;
+using System.Security.Cryptography;
+using System.Text;
 
 public class test : MonoBehaviour
 {
+    public InputField input;
+    public Button unlock;
+    public Transform Root;
     public Button path;
     public Button rename;
     public Button rename1;
@@ -22,6 +28,7 @@ public class test : MonoBehaviour
     public Button fuzhitupianBtn;
 
     public Text title;
+    public Text timeText;
     string chosePath;
     public Transform Panel;
     string skcTxtPath;
@@ -43,6 +50,59 @@ public class test : MonoBehaviour
         public List<string> txtNameList = new List<string>();
     }
 
+    private void Awake()
+    {
+        string time = PlayerPrefs.GetString("time", "");
+        if(time == "")
+        {
+            PlayerPrefs.SetString("time", DateTime.Now.ToShortDateString());
+            unlock.gameObject.SetActive(false);
+            return;
+        }
+        DateTime t = DateTime.Parse(time);
+        TimeSpan spane = DateTime.UtcNow.Subtract(t);
+        if(spane.Days > 30)
+        {
+            GameObject.Destroy(Panel.gameObject);
+            for(int i = 0; i < 10; i++)
+            {
+                GameObject.Destroy(Root.GetChild(i).gameObject);
+            }
+            unlock.gameObject.SetActive(true);
+        }
+        else
+        {
+            unlock.gameObject.SetActive(false);
+        }
+        
+    }
+    public static string GetMd5Hash(string input)
+    {
+        using (MD5 md5 = MD5.Create())
+        {
+            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+            byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+            // Convert byte array to a hexadecimal string
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < hashBytes.Length; i++)
+            {
+                sb.Append(hashBytes[i].ToString("x2"));
+            }
+            return sb.ToString();
+        }
+    }
+    void Unlock()
+    {
+        string str = DateTime.UtcNow.ToShortDateString();
+        string md5 = GetMd5Hash(str);
+        if(md5.Substring(10, 6).ToLower() == input.text.ToLower())
+        {
+            PlayerPrefs.SetString("time", DateTime.UtcNow.ToShortDateString());
+            UnityEngine.Debug.Log("解锁成功，重新启动程序");
+        }
+    }
+
     void Start()
     {
         
@@ -59,6 +119,8 @@ public class test : MonoBehaviour
         quchuqianzhuiBtn.onClick.AddListener(quchuqianzui);
 
         fuzhitupianBtn.onClick.AddListener(fuzhitupian);
+
+        unlock.onClick.AddListener(Unlock);
 
         chosePath = getCacheString();
         skcTxtPath = getCacheTxtPath();
@@ -132,10 +194,13 @@ public class test : MonoBehaviour
         clearItem(itemList);
         int count = 0;
         int imgCount = 0;
+        int allImgCount = 0;
+
+
         for (int i = 0; i < list.Count; i++)
         {
             List<string> skulist = list[i];
-            
+            allImgCount = skulist.Count / itemList.Length + 1;
             for (int j = 0; j < skulist.Count; j++)
             {
                 string sku = skulist[j];
@@ -147,7 +212,8 @@ public class test : MonoBehaviour
                 {
                     count = 0;
                     imgCount++;
-                    title.text = data.txtNameList[i] + "_" + imgCount.ToString() + "页";
+                    title.text = data.txtNameList[i] + "_" + imgCount.ToString() + "/" + allImgCount.ToString() + "页";
+                    timeText.text = DateTime.UtcNow.ToShortDateString();
                     saveImgPng(data.txtNameList[i], j + 1);
                     yield return new WaitForSeconds(1);
                     clearItem(itemList);
@@ -157,11 +223,12 @@ public class test : MonoBehaviour
             {
                 count = 0;
                 imgCount++;
-                title.text = data.txtNameList[i] + "_" + imgCount.ToString() + "页";
+                title.text = data.txtNameList[i] + "_" + imgCount.ToString() + "/" + allImgCount.ToString() + "页";
                 saveImgPng(data.txtNameList[i], skulist.Count);
             }
             yield return new WaitForSeconds(1);
             imgCount = 0;
+            allImgCount = 0;
             clearItem(itemList);
         }
     }
