@@ -96,6 +96,7 @@ public class test : MonoBehaviour
     {
         string str = DateTime.UtcNow.ToShortDateString();
         string md5 = GetMd5Hash(str);
+        UnityEngine.Debug.Log(md5);
         if(md5.Substring(10, 6).ToLower() == input.text.ToLower())
         {
             PlayerPrefs.SetString("time", DateTime.UtcNow.ToShortDateString());
@@ -200,7 +201,7 @@ public class test : MonoBehaviour
         for (int i = 0; i < list.Count; i++)
         {
             List<string> skulist = list[i];
-            allImgCount = skulist.Count / itemList.Length + 1;
+            allImgCount = (skulist.Count + itemList.Length - 1) / itemList.Length;
             for (int j = 0; j < skulist.Count; j++)
             {
                 string sku = skulist[j];
