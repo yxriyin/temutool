@@ -14,6 +14,9 @@ public class test : MonoBehaviour
     public Button unlock;
     public Transform Root;
     public Button path;
+    public Button PSDPath;
+
+
     public Button rename;
     public Button rename1;
     public Button rename2;
@@ -27,9 +30,14 @@ public class test : MonoBehaviour
 
     public Button fuzhitupianBtn;
 
+    public Button CopyPSDBtn;
+
+    public Button CombineBtn;
+
     public Text title;
     public Text timeText;
     string chosePath;
+    string psdPathStr;
     public Transform Panel;
     string skcTxtPath;
     string jianhuodanPath;
@@ -42,6 +50,8 @@ public class test : MonoBehaviour
         public Dictionary<string, string> sku2skcDic = new Dictionary<string, string>();
         public Dictionary<string, int> skcCountDic = new Dictionary<string, int>();
         public Dictionary<string, string> skc2dealDic = new Dictionary<string, string>();
+        public Dictionary<string, string> sku2ageDic = new Dictionary<string, string>();
+        public Dictionary<string, int> age2CountDic = new Dictionary<string, int>();
     }
 
     public class jianhuodanData
@@ -108,6 +118,7 @@ public class test : MonoBehaviour
     {
         
         path.onClick.AddListener(PathClick);
+        PSDPath.onClick.AddListener(PSDPathClick);
         rename.onClick.AddListener(renameClick);
         rename1.onClick.AddListener(renameClick1);
         rename2.onClick.AddListener(renameClick2);
@@ -123,7 +134,12 @@ public class test : MonoBehaviour
 
         unlock.onClick.AddListener(Unlock);
 
+        CopyPSDBtn.onClick.AddListener(CopyPSDClick);
+
+        CombineBtn.onClick.AddListener(CombineAllFileClick);
+
         chosePath = getCacheString();
+        psdPathStr = getPSDString();
         skcTxtPath = getCacheTxtPath();
         jianhuodanPath = getCacheJianhuodanPath();
         Panel.gameObject.SetActive(false);
@@ -135,6 +151,11 @@ public class test : MonoBehaviour
         return PlayerPrefs.GetString("path");
     }
 
+    string getPSDString()
+    {
+        return PlayerPrefs.GetString("psdPath");
+    }
+
     string getCacheTxtPath()
     {
         return PlayerPrefs.GetString("txtpath");
@@ -144,6 +165,54 @@ public class test : MonoBehaviour
     string getCacheJianhuodanPath()
     {
         return PlayerPrefs.GetString("jianhuodanpath");
+    }
+
+    void CopyPSDClick()
+    {
+        string[] dirs = Directory.GetDirectories(chosePath);
+        string[] files = Directory.GetFiles(psdPathStr);
+        for(int i = 0; i < dirs.Length; i++)
+        {
+            string[] arr = dirs[i].Split('_');
+            if(arr.Length <= 0)
+            {
+                continue;
+            }
+
+            string skcWithPath = arr[0];
+            string skc = Path.GetFileName(skcWithPath);
+            for(int j = 0; j < files.Length; j++)
+            {
+                if(files[j].IndexOf(skc) >= 0)
+                {
+                    //UnityEngine.Debug.LogError(files[j]);
+                    string newFileName = Path.GetFileName(files[j]);
+                    File.Copy(files[j], Path.Combine(dirs[i], newFileName), true);
+                    break;
+                }
+            }
+        }
+    }
+
+    void CombineAllFileClick()
+    {
+        createDir("piliangkoutu");
+        string[] dirs = Directory.GetDirectories(chosePath);
+        string combinePath = Path.Combine(chosePath, "piliangkoutu");
+        for(int i = 0; i < dirs.Length; i++)
+        {
+            if(dirs[i].Contains("piliangkoutu"))
+            {
+                continue;
+            }
+            string[] files = Directory.GetFiles(dirs[i]);
+            for(int j = 0; j < files.Length; j++)
+            {
+                string newFileName = Path.GetFileName(files[j]);
+                File.Copy(files[j], Path.Combine(combinePath, newFileName), true);
+            }
+            
+        }
     }
 
     void xuanzejianhuodan()
@@ -159,6 +228,14 @@ public class test : MonoBehaviour
         chosePath = EditorUtility.OpenFolderPanel("Chose Path", chosePath, "");
         UnityEngine.Debug.Log(chosePath);
         PlayerPrefs.SetString("path", chosePath);
+        PlayerPrefs.Save();
+    }
+
+    void PSDPathClick()
+    {
+        psdPathStr = EditorUtility.OpenFolderPanel("Chose Path", psdPathStr, "");
+        UnityEngine.Debug.Log(psdPathStr);
+        PlayerPrefs.SetString("psdPath", psdPathStr);
         PlayerPrefs.Save();
     }
 
@@ -283,6 +360,7 @@ public class test : MonoBehaviour
         for (int i = 1; i < lines.Length; i++)
         {
             string[] arr = lines[i].Split(',');
+            UnityEngine.Debug.Log(i);
             if(int.Parse(arr[numIndex]) > 1)
             {
                 int copyNum = int.Parse(arr[numIndex]) - 1;
@@ -296,7 +374,7 @@ public class test : MonoBehaviour
                         string ext = Path.GetExtension(files[j]);
                         for(int k = 0; k < copyNum; k++)
                         {
-                            File.Copy(files[j], Path.Combine(newDir, newPath + "_" + k + ext));
+                            File.Copy(files[j], Path.Combine(newDir, newPath + "_" + k + ext), true);
                         }
                        
                     }
@@ -407,7 +485,7 @@ public class test : MonoBehaviour
                     continue;
                 }
                 string skc = data.sku2skcDic[sku];
-                fenlei(skc, data, savePath, files[j], Path.GetFileName(files[j]));
+                fenlei(skc, sku, data, savePath, files[j], Path.GetFileName(files[j]));
             }
             //
         }
@@ -439,7 +517,7 @@ public class test : MonoBehaviour
                         }
                         
                         string skc = data.sku2skcDic[sku];
-                        fenlei(skc, data, savePath, files1[j], Path.GetFileName(files1[j]));
+                        fenlei(skc, sku, data, savePath, files1[j], Path.GetFileName(files1[j]));
                     }
                     //
                 }
@@ -575,10 +653,11 @@ public class test : MonoBehaviour
         string[] titles = lines[0].Split(',');
         int skuindex = 6;
         int skcindex = 2;
-
+        int agesIndex = 5;
         Dictionary<string, string> sku2skcDic = new Dictionary<string, string>();
         Dictionary<string, int> skcCountDic = new Dictionary<string, int>();
-        
+        Dictionary<string, string> sku2ageDic = new Dictionary<string, string>();
+        Dictionary<string, int> age2CountDic = new Dictionary<string, int>();
         for (int i = 0; i < titles.Length; i++)
         {
             if (titles[i] == "定制SKU")
@@ -589,6 +668,10 @@ public class test : MonoBehaviour
             {
                 skcindex = i;
             }
+            if(titles[i] == "商品属性集")
+            {
+                agesIndex = i;
+            }
         }
 
         for (int i = 1; i < lines.Length; i++)
@@ -596,7 +679,23 @@ public class test : MonoBehaviour
             string[] contents = lines[i].Split(',');
             string sku = contents[skuindex];
             string skc = contents[skcindex];
+            
             sku2skcDic[sku] = skc;
+            if(contents[agesIndex].IndexOf('-') >= 0)
+            {
+                string ageInfo = contents[agesIndex];
+                sku2ageDic[sku] = ageInfo;
+                string skcAndAgeInfo = skc + ageInfo;
+                if(!age2CountDic.ContainsKey(skcAndAgeInfo))
+                {
+                    age2CountDic[skcAndAgeInfo] = 0;
+                }
+                age2CountDic[skcAndAgeInfo]++;
+            }
+            else
+            {
+                sku2ageDic[sku] = "";
+            }
             if (!skcCountDic.ContainsKey(skc))
             {
                 skcCountDic[skc] = 0;
@@ -609,10 +708,12 @@ public class test : MonoBehaviour
         data.skcCountDic = skcCountDic;
         data.sku2skcDic = sku2skcDic;
         data.skc2dealDic = skc2DealDic;
+        data.sku2ageDic = sku2ageDic;
+        data.age2CountDic = age2CountDic;
         return data;
     }
 
-    void fenlei(string skc, skcData data, string savepath, string fileNameFullPath, string fileWithExt)
+    void fenlei(string skc, string sku, skcData data, string savepath, string fileNameFullPath, string fileWithExt)
     {
         string newPath = skc + "_" + data.skcCountDic[skc];
         if (data.skc2dealDic.ContainsKey(skc))
@@ -625,7 +726,29 @@ public class test : MonoBehaviour
             Directory.CreateDirectory(resultPath);
         }
 
-        File.Copy(fileNameFullPath, Path.Combine(resultPath, fileWithExt), true);
+        string ageInfo = data.sku2ageDic[sku];
+        if(ageInfo != "")
+        {
+            int count = 0;
+            string skcAndAgeInfo = skc + ageInfo;
+            if(data.age2CountDic.ContainsKey(skcAndAgeInfo))
+            {
+                count = data.age2CountDic[skcAndAgeInfo];
+            }
+            string agePath = Path.Combine(resultPath, ageInfo + "-" + count);
+            if (!Directory.Exists(agePath))
+            {
+                Directory.CreateDirectory(agePath);
+            }
+
+            File.Copy(fileNameFullPath, Path.Combine(agePath, fileWithExt), true);
+        }
+        else
+        {
+            File.Copy(fileNameFullPath, Path.Combine(resultPath, fileWithExt), true);
+        }
+
+        
     }
 
     void renameClick()
@@ -649,10 +772,10 @@ public class test : MonoBehaviour
                     string str1 = str.Substring(index);
                     string[] arr = str1.Split('-');
                     string ext = arr[1] + Path.GetExtension(files[j]);
+                    string sku = arr[1];
+                    string skc = data.sku2skcDic[sku];
 
-                    string skc = data.sku2skcDic[arr[1]];
-
-                    fenlei(skc, data, newPath, files[j], ext);
+                    fenlei(skc, sku, data, newPath, files[j], ext);
                 }
                 //
             }
