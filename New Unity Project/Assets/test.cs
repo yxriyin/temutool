@@ -34,6 +34,8 @@ public class test : MonoBehaviour
 
     public Button CombineBtn;
 
+    public Button wannengBtn;
+
     public Text title;
     public Text timeText;
     string chosePath;
@@ -138,12 +140,53 @@ public class test : MonoBehaviour
 
         CombineBtn.onClick.AddListener(CombineAllFileClick);
 
+        wannengBtn.onClick.AddListener(wangnengClick);
         chosePath = getCacheString();
         psdPathStr = getPSDString();
         skcTxtPath = getCacheTxtPath();
         jianhuodanPath = getCacheJianhuodanPath();
         Panel.gameObject.SetActive(false);
         saveRTCamera.enabled = false;
+    }
+
+    void wangnengClick()
+    {
+        csvfilterfiles();
+    }
+
+    void csvfilterfiles()
+    {
+        string csvFileName = Path.Combine(chosePath, "PSD挑选.csv");
+        string[] arr = File.ReadAllLines(csvFileName);
+
+        string[] files = Directory.GetFiles(chosePath);
+        string newDir = Path.Combine(chosePath, "newPSD");
+        createDir(newDir);
+        for(int i = 1; i < arr.Length; i++)
+        {
+            string skc = arr[i];
+            for(int j = 0; j < files.Length; j++)
+            {
+                if(files[j].IndexOf(skc) >= 0)
+                {
+                    string fileName = Path.GetFileName(files[j]);
+                    File.Copy(files[j], Path.Combine(newDir, fileName), true);
+                }
+            }
+        }
+    }
+    void files2skcList()
+    {
+        string[] files = Directory.GetFiles(chosePath);
+        List<string> result = new List<string>();
+        result.Add("skc");
+        for(int i = 0; i < files.Length; i++)
+        {
+            string skc = Path.GetFileNameWithoutExtension(files[i]);
+            result.Add(skc);
+        }
+
+        File.WriteAllLines(Path.Combine(chosePath, "skc.csv"), result);
     }
 
     string getCacheString()
