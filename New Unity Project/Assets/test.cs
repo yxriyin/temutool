@@ -7,6 +7,7 @@ using System.IO;
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 public class test : MonoBehaviour
 {
@@ -34,11 +35,15 @@ public class test : MonoBehaviour
 
     public Button CombineBtn;
 
+    public Button comparePathBtn;
+    public Button compareBtn;
+
     public Button wannengBtn;
 
     public Text title;
     public Text timeText;
     string chosePath;
+    string comparePath;
     string psdPathStr;
     public Transform Panel;
     string skcTxtPath;
@@ -140,8 +145,13 @@ public class test : MonoBehaviour
 
         CombineBtn.onClick.AddListener(CombineAllFileClick);
 
+        comparePathBtn.onClick.AddListener(ComparePathClick);
+
+        compareBtn.onClick.AddListener(compareClick);
+
         wannengBtn.onClick.AddListener(wangnengClick);
         chosePath = getCacheString();
+        comparePath = getCompareString();
         psdPathStr = getPSDString();
         skcTxtPath = getCacheTxtPath();
         jianhuodanPath = getCacheJianhuodanPath();
@@ -169,8 +179,8 @@ public class test : MonoBehaviour
             {
                 if(files[j].IndexOf(skc) >= 0)
                 {
-                    string fileName = Path.GetFileName(files[j]);
-                    File.Copy(files[j], Path.Combine(newDir, fileName), true);
+                    string filename = Path.GetFileName(files[j]);
+                    File.Copy(files[j], Path.Combine(newDir, filename), true);
                 }
             }
         }
@@ -192,6 +202,11 @@ public class test : MonoBehaviour
     string getCacheString()
     {
         return PlayerPrefs.GetString("path");
+    }
+
+    string getCompareString()
+    {
+        return PlayerPrefs.GetString("comparePath");
     }
 
     string getPSDString()
@@ -274,12 +289,133 @@ public class test : MonoBehaviour
         PlayerPrefs.Save();
     }
 
+    void ComparePathClick()
+    {
+        comparePath = EditorUtility.OpenFolderPanel("Chose Path", comparePath, "");
+        UnityEngine.Debug.Log(comparePath);
+        PlayerPrefs.SetString("comparePath", comparePath);
+        PlayerPrefs.Save();
+    }
+
     void PSDPathClick()
     {
         psdPathStr = EditorUtility.OpenFolderPanel("Chose Path", psdPathStr, "");
         UnityEngine.Debug.Log(psdPathStr);
         PlayerPrefs.SetString("psdPath", psdPathStr);
         PlayerPrefs.Save();
+    }
+
+    public static bool IsNumber(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        const string pattern = "^[0-9]*$";
+        Regex rx = new Regex(pattern);
+        return rx.IsMatch(s);
+    }
+
+
+    void compareClick()
+    {
+        string[] files1 = Directory.GetFiles(chosePath);
+        string[] files2 = Directory.GetFiles(comparePath);
+
+        List<string> originInValidList = new List<string>();
+        List<string> targetInValidList = new List<string>();
+        List<string> originValidDic = new List<string>();
+        List<string> targetValidDic = new List<string>();
+        for (int i = 0; i < files1.Length; i++)
+        {
+            string filename = Path.GetFileName(files1[i]);
+            if(filename.IndexOf("DS_Store") >= 0 || filename.EndsWith(".txt"))
+            {
+                continue;
+            }
+            string pattern = @"^\d+\.png$";
+            Regex rx = new Regex(pattern);
+            if(!rx.IsMatch(filename))
+            {
+                originInValidList.Add(filename);
+            }
+            else
+            {
+                string[] arr = filename.Split('.');
+                string sku = arr[0];
+                originValidDic.Add(sku);
+            }
+        }
+
+        for (int i = 0; i < files2.Length; i++)
+        {
+            string filename = Path.GetFileName(files2[i]);
+            if (filename.IndexOf("DS_Store") >= 0)
+            {
+                continue;
+            }
+            string pattern = @"^\d+(_\d{1,3})?\.png";
+            Regex rx = new Regex(pattern);
+            if (!rx.IsMatch(filename))
+            {
+                targetInValidList.Add(filename);
+            }
+            else
+            {
+                string[] arr = filename.Split('.');
+                string sku = arr[0];
+                targetValidDic.Add(sku);
+            }
+        }
+
+        for(int i = 0; i < originValidDic.Count; i++)
+        {
+            string originSku = originValidDic[i];
+            bool flag = false;
+            for(int j = 0; j < targetValidDic.Count; j++)
+            {
+                string targetSku = targetValidDic[j];
+                if(targetSku.IndexOf(originSku) == 0)
+                {
+                    targetValidDic.RemoveAt(j);
+                    flag = true;
+                    break;
+                }
+            }
+            if(flag == true)
+            {
+                originValidDic.RemoveAt(i);
+                i--;
+            }
+        }
+
+        List<string> result = new List<string>();
+        string txt = "原始图命名不规范：";
+        for(int i = 0; i < originInValidList.Count; i++)
+        {
+            txt += originInValidList[i] + "   ";
+        }
+        result.Add(txt);
+        txt = "设计图命名不规范：";
+        for (int i = 0; i < targetInValidList.Count; i++)
+        {
+            txt += targetInValidList[i] + "   ";
+        }
+        result.Add(txt);
+        txt = "原始图多余：";
+        for (int i = 0; i < originValidDic.Count; i++)
+        {
+            txt += originValidDic[i] + "   ";
+        }
+        result.Add(txt);
+        txt = "设计图多余：";
+        for (int i = 0; i < targetValidDic.Count; i++)
+        {
+            txt += targetValidDic[i] + "   ";
+        }
+        result.Add(txt);
+        for(int i = 0; i < result.Count; i++)
+        {
+            UnityEngine.Debug.Log(result[i]);
+        }
+        File.WriteAllLines(Path.Combine(chosePath, "对比结果.txt"), result);
     }
 
     void createDir(string str)
@@ -489,8 +625,8 @@ public class test : MonoBehaviour
         string[] files = Directory.GetFiles(chosePath);
         for(int i = 0; i < files.Length; i++)
         {
-            string fileName = Path.GetFileName(files[i]);
-            string[] arr = fileName.Split('_');
+            string filename = Path.GetFileName(files[i]);
+            string[] arr = filename.Split('_');
             int skuIndex = -1;
             int maxLen = -1;
             for (int j = 0; j < arr.Length; j++)
@@ -756,7 +892,7 @@ public class test : MonoBehaviour
         return data;
     }
 
-    void fenlei(string skc, string sku, skcData data, string savepath, string fileNameFullPath, string fileWithExt)
+    void fenlei(string skc, string sku, skcData data, string savepath, string filenameFullPath, string fileWithExt)
     {
         string newPath = skc + "_" + data.skcCountDic[skc];
         if (data.skc2dealDic.ContainsKey(skc))
@@ -784,11 +920,11 @@ public class test : MonoBehaviour
                 Directory.CreateDirectory(agePath);
             }
 
-            File.Copy(fileNameFullPath, Path.Combine(agePath, fileWithExt), true);
+            File.Copy(filenameFullPath, Path.Combine(agePath, fileWithExt), true);
         }
         else
         {
-            File.Copy(fileNameFullPath, Path.Combine(resultPath, fileWithExt), true);
+            File.Copy(filenameFullPath, Path.Combine(resultPath, fileWithExt), true);
         }
 
         
