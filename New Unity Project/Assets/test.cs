@@ -701,7 +701,7 @@ public class test : MonoBehaviour
         if(txt != "")
         {
             string filenamewithoutext = Path.GetFileNameWithoutExtension(fileName);
-            newFileName = filenamewithoutext + "_" + txt + Path.GetExtension(fileName);
+            newFileName = filenamewithoutext + "[" + txt + "]" + Path.GetExtension(fileName);
         }
 
         return newFileName;
