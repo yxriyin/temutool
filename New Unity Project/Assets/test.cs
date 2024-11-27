@@ -59,6 +59,7 @@ public class test : MonoBehaviour
         public Dictionary<string, string> skc2dealDic = new Dictionary<string, string>();
         public Dictionary<string, string> sku2ageDic = new Dictionary<string, string>();
         public Dictionary<string, int> age2CountDic = new Dictionary<string, int>();
+        public Dictionary<string, string> sku2txtDic = new Dictionary<string, string>();
     }
 
     public class jianhuodanData
@@ -159,9 +160,49 @@ public class test : MonoBehaviour
         saveRTCamera.enabled = false;
     }
 
+    void duibiSPU()
+    {
+        string[] lines = File.ReadAllLines(jianhuodanPath);
+        List<string> spusuc = new List<string>();
+        List<string> spuall = new List<string>();
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string[] arr = lines[i].Split(',');
+            if(arr[0] != "")
+            {
+                spusuc.Add(arr[0]);
+            }
+            if(arr[1] != "")
+            {
+                spuall.Add(arr[1]);
+            }
+        }
+
+        List<string> result = new List<string>();
+        for(int i = 0; i < spuall.Count; i++)
+        {
+            if(spusuc.Contains(spuall[i]))
+            {
+                continue;
+            }
+            result.Add(spuall[i]);
+        }
+
+
+        string str = "";
+        for(int i = 0; i < result.Count; i++)
+        {
+            str += result[i] + " ";
+        }
+
+        Debug.Log(str);
+        File.WriteAllText(@"C:\Users\yxriy\Desktop\1.txt", str);
+    }
+
     void wangnengClick()
     {
-        csvfilterfiles();
+        duibiSPU();
+        //csvfilterfiles();
     }
 
     void csvfilterfiles()
@@ -648,6 +689,24 @@ public class test : MonoBehaviour
     }
 
 
+    string getFileNameWithTxt(string fileName, string sku, skcData data)
+    {
+        Dictionary<string, string> sku2TxtDic = data.sku2txtDic;
+        string txt = "";
+        if (sku2TxtDic.ContainsKey(sku))
+        {
+            txt = sku2TxtDic[sku];
+        }
+        string newFileName = fileName;
+        if(txt != "")
+        {
+            string filenamewithoutext = Path.GetFileNameWithoutExtension(fileName);
+            newFileName = filenamewithoutext + "_" + txt + Path.GetExtension(fileName);
+        }
+
+        return newFileName;
+    }
+
     void renameClick2()
     {
         createDir("dingzhitupian");
@@ -664,7 +723,8 @@ public class test : MonoBehaviour
                     continue;
                 }
                 string skc = data.sku2skcDic[sku];
-                fenlei(skc, sku, data, savePath, files[j], Path.GetFileName(files[j]));
+                string newFileName = getFileNameWithTxt(Path.GetFileName(files[j]), sku, data);
+                fenlei(skc, sku, data, savePath, files[j], newFileName);
             }
             //
         }
@@ -696,7 +756,8 @@ public class test : MonoBehaviour
                         }
                         
                         string skc = data.sku2skcDic[sku];
-                        fenlei(skc, sku, data, savePath, files1[j], Path.GetFileName(files1[j]));
+                        string newFileName = getFileNameWithTxt(Path.GetFileName(files1[j]), sku, data);
+                        fenlei(skc, sku, data, savePath, files1[j], newFileName);
                     }
                     //
                 }
@@ -833,10 +894,12 @@ public class test : MonoBehaviour
         int skuindex = 6;
         int skcindex = 2;
         int agesIndex = 5;
+        int txtIndex = 8;
         Dictionary<string, string> sku2skcDic = new Dictionary<string, string>();
         Dictionary<string, int> skcCountDic = new Dictionary<string, int>();
         Dictionary<string, string> sku2ageDic = new Dictionary<string, string>();
         Dictionary<string, int> age2CountDic = new Dictionary<string, int>();
+        Dictionary<string, string> sku2TxtDic = new Dictionary<string, string>();
         for (int i = 0; i < titles.Length; i++)
         {
             if (titles[i] == "定制SKU")
@@ -851,6 +914,22 @@ public class test : MonoBehaviour
             {
                 agesIndex = i;
             }
+            if(titles[i] == "文字内容")
+            {
+                txtIndex = i;
+            }
+        }
+
+        Dictionary<int, string> hasTxtDic = new Dictionary<int, string>();
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string[] contents = lines[i].Split(',');
+            string txt = contents[txtIndex];
+            if(txt == @"\")
+            {
+                continue;
+            }
+            hasTxtDic[i - 1] = txt;
         }
 
         for (int i = 1; i < lines.Length; i++)
@@ -858,7 +937,14 @@ public class test : MonoBehaviour
             string[] contents = lines[i].Split(',');
             string sku = contents[skuindex];
             string skc = contents[skcindex];
-            
+            if(sku == "")
+            {
+                continue;
+            }
+            if(hasTxtDic.ContainsKey(i))
+            {
+                sku2TxtDic[sku] = hasTxtDic[i];
+            }
             sku2skcDic[sku] = skc;
             if(contents[agesIndex].IndexOf('-') >= 0)
             {
@@ -889,6 +975,7 @@ public class test : MonoBehaviour
         data.skc2dealDic = skc2DealDic;
         data.sku2ageDic = sku2ageDic;
         data.age2CountDic = age2CountDic;
+        data.sku2txtDic = sku2TxtDic;
         return data;
     }
 
