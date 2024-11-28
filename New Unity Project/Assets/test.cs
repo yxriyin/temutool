@@ -392,7 +392,7 @@ public class test : MonoBehaviour
             {
                 continue;
             }
-            string pattern = @"^\d+(_\d{1,3})?\.png";
+            string pattern = @"^\d+(\[.*\])?(_\d{1,3})?(\[.*\])?\.png";
             Regex rx = new Regex(pattern);
             if (!rx.IsMatch(filename))
             {
