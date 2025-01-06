@@ -657,6 +657,11 @@ public class test : MonoBehaviour
                 {
                     newStr += "," + list[j];
                 }
+
+                for(int j = list.Count; j < 9; j++)
+                {
+                    newStr += ",";
+                }
                 newResult.Add(newStr);
             }
         }
