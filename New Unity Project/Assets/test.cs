@@ -54,6 +54,8 @@ public class test : MonoBehaviour
     string jianhuodanPath;
     // Start is called before the first frame update
     public Camera saveRTCamera;
+
+    public Dropdown dropdown;
     public class skcData
     {
         public int skuindex = 6;
@@ -563,25 +565,38 @@ public class test : MonoBehaviour
     {
         string[] numstr = { "一", "二", "三", "四", "五", "六", "七", "八", "九" };
         string[] lines = File.ReadAllLines(jianhuodanPath);
-        string title = lines[0];
+        string title = "定制SKU,图片路径";
 
         string[] titles = lines[0].Split(',');
         int dingzhiIndex = 9;
+        int skcIndex = 2;
+        int skuIndex = 8;
         for (int i = 0; i < titles.Length; i++)
         {
             if (titles[i] == "定制区域")
             {
                 dingzhiIndex = i;
             }
+
+            if (titles[i] == "商品SKC ID")
+            {
+                skcIndex = i;
+            }
+
+            if (titles[i] == "定制SKU")
+            {
+                skuIndex = i;
+            }
         }
 
-        for (int i = 2; i <= 9; i++)
+        for (int i = 1; i <= 9; i++)
         {
             title += "," + "定制区域" + numstr[i - 1];
         }
 
         int index = 1;
         Dictionary<int, List<string>> dic = new Dictionary<int, List<string>>();
+        string preLineStr = "";
         for(int i = 1; i < lines.Length; i++)
         {
             string[] content = lines[i].Split(',');
@@ -597,38 +612,64 @@ public class test : MonoBehaviour
                     dic[index] = list;
                 }
 
+                if(preLineStr != "")
+                {
+                    list.Add(preLineStr);
+                    preLineStr = "";
+                }
+
                 list.Add(content[dingzhiIndex + 1]);
             }
             else
             {
                 index = i;
+                preLineStr = content[dingzhiIndex + 1];
             }
         }
-        List<string> newResult = new List<string>();
-        newResult.Add(title);
+
+        Dictionary<string, List<string>> allSkcDic = new Dictionary<string, List<string>>();
+        
         for (int i = 1; i < lines.Length; i++)
         {
             if(dic.ContainsKey(i))
             {
                 List<string> list = dic[i];
-                string newStr = lines[i]; 
+                string[] arr = lines[i].Split(',');
+                string sku = arr[skuIndex];
+                string skc = arr[skcIndex];
+                List<string> newResult = new List<string>();
+                if (!allSkcDic.ContainsKey(skc))
+                {
+                    newResult.Add(title);
+                    allSkcDic[skc] = newResult;
+                }
+                else
+                {
+                    newResult = allSkcDic[skc];
+                }
+
+                string newStr = sku;
+                string filePath = dropdown.options[dropdown.value].text;
+                filePath = Path.Combine(filePath, skc);
+                filePath = filePath + "/" + sku + ".png";
+                newStr += "," + filePath;
                 for (int j = 0; j < list.Count; j++)
                 {
                     newStr += "," + list[j];
                 }
                 newResult.Add(newStr);
             }
-            else
-            {
-                newResult.Add(lines[i]);
-            }
         }
 
-        string dir = Path.GetDirectoryName(jianhuodanPath);
-        string newPath = Path.GetFileNameWithoutExtension(jianhuodanPath) + "_1.csv";
-        string newDir = Path.Combine(dir, newPath);
-
-        File.WriteAllLines(newDir, newResult.ToArray());
+        
+        foreach(var skc in allSkcDic.Keys)
+        {
+            string dir = Path.GetDirectoryName(jianhuodanPath);
+            string newPath = skc + "_custom_text.csv";
+            string newDir = Path.Combine(dir, newPath);
+            File.WriteAllLines(newDir, allSkcDic[skc].ToArray());
+        }
+        
     }
 
     void fuzhitupian()
@@ -749,6 +790,12 @@ public class test : MonoBehaviour
             string[] arr = filename.Split('_');
             string newFileName = arr[0] + Path.GetExtension(filename);
             
+            if(arr.Length <= 1)
+            {
+                newFileName = arr[0];
+            }
+
+
             string dir = Path.GetDirectoryName(files[i]);
             dir = Path.Combine(dir, "quhouzui");
             File.Copy(files[i], Path.Combine(dir, newFileName), true);
