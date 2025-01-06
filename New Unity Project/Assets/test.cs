@@ -29,6 +29,8 @@ public class test : MonoBehaviour
 
     public Button quchuqianzhuiBtn;
 
+    public Button quchuhoushuiBtn;
+
     public Button fuzhitupianBtn;
 
     public Button CopyPSDBtn;
@@ -37,6 +39,8 @@ public class test : MonoBehaviour
 
     public Button comparePathBtn;
     public Button compareBtn;
+
+    public Button wenzihuizongBtn;
 
     public Button wannengBtn;
 
@@ -137,7 +141,7 @@ public class test : MonoBehaviour
         tongjihuizongBtn.onClick.AddListener(tongjijianhuodan);
 
         quchuqianzhuiBtn.onClick.AddListener(quchuqianzui);
-
+        quchuhoushuiBtn.onClick.AddListener(quchuhouzhui);
         fuzhitupianBtn.onClick.AddListener(fuzhitupian);
 
         unlock.onClick.AddListener(Unlock);
@@ -149,6 +153,8 @@ public class test : MonoBehaviour
         comparePathBtn.onClick.AddListener(ComparePathClick);
 
         compareBtn.onClick.AddListener(compareClick);
+
+        wenzihuizongBtn.onClick.AddListener(wenzihuizongClick);
 
         wannengBtn.onClick.AddListener(wangnengClick);
         chosePath = getCacheString();
@@ -553,6 +559,78 @@ public class test : MonoBehaviour
         return "";
     }
 
+    void wenzihuizongClick()
+    {
+        string[] numstr = { "一", "二", "三", "四", "五", "六", "七", "八", "九" };
+        string[] lines = File.ReadAllLines(jianhuodanPath);
+        string title = lines[0];
+
+        string[] titles = lines[0].Split(',');
+        int dingzhiIndex = 9;
+        for (int i = 0; i < titles.Length; i++)
+        {
+            if (titles[i] == "定制区域")
+            {
+                dingzhiIndex = i;
+            }
+        }
+
+        for (int i = 2; i <= 9; i++)
+        {
+            title += "," + "定制区域" + numstr[i - 1];
+        }
+
+        int index = 1;
+        Dictionary<int, List<string>> dic = new Dictionary<int, List<string>>();
+        for(int i = 1; i < lines.Length; i++)
+        {
+            string[] content = lines[i].Split(',');
+            if(content[0] == "")
+            {
+                List<string> list = new List<string>();
+                if(dic.ContainsKey(index))
+                {
+                    list = dic[index];
+                }
+                else
+                {
+                    dic[index] = list;
+                }
+
+                list.Add(content[dingzhiIndex + 1]);
+            }
+            else
+            {
+                index = i;
+            }
+        }
+        List<string> newResult = new List<string>();
+        newResult.Add(title);
+        for (int i = 1; i < lines.Length; i++)
+        {
+            if(dic.ContainsKey(i))
+            {
+                List<string> list = dic[i];
+                string newStr = lines[i]; 
+                for (int j = 0; j < list.Count; j++)
+                {
+                    newStr += "," + list[j];
+                }
+                newResult.Add(newStr);
+            }
+            else
+            {
+                newResult.Add(lines[i]);
+            }
+        }
+
+        string dir = Path.GetDirectoryName(jianhuodanPath);
+        string newPath = Path.GetFileNameWithoutExtension(jianhuodanPath) + "_1.csv";
+        string newDir = Path.Combine(dir, newPath);
+
+        File.WriteAllLines(newDir, newResult.ToArray());
+    }
+
     void fuzhitupian()
     {
         string[] lines = File.ReadAllLines(jianhuodanPath);
@@ -659,6 +737,22 @@ public class test : MonoBehaviour
 
         File.WriteAllLines(Path.Combine(dir, "拣货单汇总.csv"), saveArr.ToArray());
 
+    }
+
+    void quchuhouzhui()
+    {
+        string[] files = Directory.GetFiles(chosePath);
+        createDir("quhouzui");
+        for (int i = 0; i < files.Length; i++)
+        {
+            string filename = Path.GetFileName(files[i]);
+            string[] arr = filename.Split('_');
+            string newFileName = arr[0] + Path.GetExtension(filename);
+            
+            string dir = Path.GetDirectoryName(files[i]);
+            dir = Path.Combine(dir, "quhouzui");
+            File.Copy(files[i], Path.Combine(dir, newFileName), true);
+        }
     }
 
     void quchuqianzui()
