@@ -793,9 +793,10 @@ public class test : MonoBehaviour
         {
             string filename = Path.GetFileName(files[i]);
             string[] arr = filename.Split('_');
-            string newFileName = arr[0] + Path.GetExtension(filename);
+            string[] arr1 = arr[0].Split('[');
+            string newFileName = arr1[0] + Path.GetExtension(filename);
             
-            if(arr.Length <= 1)
+            if(arr1[0].IndexOf('.') >= 0)
             {
                 newFileName = arr[0];
             }
